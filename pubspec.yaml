@@ -119,6 +119,6 @@ msix_config:
   publisher_display_name: OpenIoTHub Cloud
   identity_name: 38916OpenIoTHubCloud.mDNSDiscovery
   publisher: CN=5F64CEA2-463E-41A3-AE89-6979242A61DF
-  msix_version: 1.0.0.1
+  msix_version: 1.0.0.0
   logo_path: assets/icon/icon.png
   capabilities: internetClient, privateNetworkClientServer
