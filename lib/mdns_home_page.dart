@@ -6,11 +6,20 @@ import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'l10n/app_localizations.dart';
+
 /// 主界面：mDNS 发现与广播（逻辑参考 Bonsoir example）。
 class MdnsHomePage extends StatefulWidget {
-  const MdnsHomePage({super.key, required this.title});
+  const MdnsHomePage({
+    super.key,
+    required this.onAppearanceTap,
+    required this.onLanguageTap,
+    required this.onThemeTap,
+  });
 
-  final String title;
+  final void Function(BuildContext context) onAppearanceTap;
+  final void Function(BuildContext context) onLanguageTap;
+  final void Function(BuildContext context) onThemeTap;
 
   @override
   State<MdnsHomePage> createState() => _MdnsHomePageState();
@@ -51,7 +60,8 @@ class _MdnsHomePageState extends State<MdnsHomePage>
 
   Future<void> _copy(String label, String text) async {
     await Clipboard.setData(ClipboardData(text: text));
-    _snack('已复制：$label');
+    if (!mounted) return;
+    _snack(AppLocalizations.of(context)!.copiedMessage(label));
   }
 
   Future<void> _addDiscoveryType() async {
@@ -62,7 +72,8 @@ class _MdnsHomePageState extends State<MdnsHomePage>
     if (type == null || type.isEmpty) return;
     final normalized = BonsoirServiceNormalizer.normalizeType(type);
     if (_discoveryTypes.contains(normalized)) {
-      _snack('已在浏览该类型');
+      if (!mounted) return;
+      _snack(AppLocalizations.of(context)!.alreadyBrowsingType);
       return;
     }
     setState(() => _discoveryTypes.add(normalized));
@@ -73,10 +84,11 @@ class _MdnsHomePageState extends State<MdnsHomePage>
   }
 
   Future<void> _addBroadcast() async {
+    final l10n = AppLocalizations.of(context)!;
     final service = await showDialog<BonsoirService>(
       context: context,
       builder: (context) => _BroadcastServiceDialog(
-        initial: _defaultBroadcastService(),
+        initial: _defaultBroadcastService(l10n),
       ),
     );
     if (service == null) return;
@@ -87,8 +99,8 @@ class _MdnsHomePageState extends State<MdnsHomePage>
     setState(() => _broadcastItems.removeWhere((e) => e.id == id));
   }
 
-  BonsoirService _defaultBroadcastService() {
-    String hostLabel = '本机';
+  BonsoirService _defaultBroadcastService(AppLocalizations l10n) {
+    String hostLabel = l10n.defaultHostLabel;
     try {
       hostLabel = Platform.localHostname;
     } catch (_) {}
@@ -105,39 +117,53 @@ class _MdnsHomePageState extends State<MdnsHomePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(l10n.homeTitle),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.search), text: '发现'),
-            Tab(icon: Icon(Icons.podcasts), text: '广播'),
+          tabs: [
+            Tab(icon: const Icon(Icons.search), text: l10n.tabDiscover),
+            Tab(icon: const Icon(Icons.podcasts), text: l10n.tabBroadcast),
           ],
         ),
         actions: [
           IconButton(
-            tooltip: '说明',
+            tooltip: l10n.tooltipAppearance,
+            icon: const Icon(Icons.dark_mode_outlined),
+            onPressed: () => widget.onAppearanceTap(context),
+          ),
+          IconButton(
+            tooltip: l10n.tooltipThemeColor,
+            icon: const Icon(Icons.palette_outlined),
+            onPressed: () => widget.onThemeTap(context),
+          ),
+          IconButton(
+            tooltip: l10n.tooltipLanguage,
+            icon: const Icon(Icons.language),
+            onPressed: () => widget.onLanguageTap(context),
+          ),
+          IconButton(
+            tooltip: l10n.tooltipHelp,
             icon: const Icon(Icons.info_outline),
             onPressed: () => showDialog<void>(
               context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('关于 mDNS'),
-                content: const SingleChildScrollView(
-                  child: Text(
-                    '发现：按 DNS-SD 类型浏览局域网服务，未解析主机时可点「解析」。\n\n'
-                    '广播：在本机发布服务（需端口未被占用且系统允许）。\n\n'
-                    '每项旁可复制；详情内可复制单行或整段 JSON。\n\n'
-                    'iOS 需在 Info.plist 的 NSBonjourServices 中声明要浏览的类型。',
+              builder: (context) {
+                final d = AppLocalizations.of(context)!;
+                return AlertDialog(
+                  title: Text(d.dialogAboutTitle),
+                  content: SingleChildScrollView(
+                    child: Text(d.dialogAboutBody),
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('知道了'),
-                  ),
-                ],
-              ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(d.dialogGotIt),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -146,6 +172,7 @@ class _MdnsHomePageState extends State<MdnsHomePage>
         controller: _tabController,
         children: [
           _DiscoveryTab(
+            l10n: l10n,
             types: _discoveryTypes,
             filterController: _filterController,
             onRemoveType: _removeDiscoveryType,
@@ -153,6 +180,7 @@ class _MdnsHomePageState extends State<MdnsHomePage>
             onSnack: _snack,
           ),
           _BroadcastTab(
+            l10n: l10n,
             items: _broadcastItems,
             onRemove: _removeBroadcast,
             onCopy: _copy,
@@ -168,7 +196,11 @@ class _MdnsHomePageState extends State<MdnsHomePage>
                 ? _addDiscoveryType
                 : _addBroadcast,
             icon: Icon(_tabController.index == 0 ? Icons.add : Icons.cast),
-            label: Text(_tabController.index == 0 ? '添加浏览类型' : '添加广播'),
+            label: Text(
+              _tabController.index == 0
+                  ? l10n.fabAddDiscoveryType
+                  : l10n.fabAddBroadcast,
+            ),
           );
         },
       ),
@@ -185,8 +217,9 @@ class _BroadcastItem {
 
 // ——— 发现 Tab ———
 
-class _DiscoveryTab extends StatelessWidget {
+class _DiscoveryTab extends StatefulWidget {
   const _DiscoveryTab({
+    required this.l10n,
     required this.types,
     required this.filterController,
     required this.onRemoveType,
@@ -194,6 +227,7 @@ class _DiscoveryTab extends StatelessWidget {
     required this.onSnack,
   });
 
+  final AppLocalizations l10n;
   final List<String> types;
   final TextEditingController filterController;
   final void Function(String type) onRemoveType;
@@ -201,17 +235,27 @@ class _DiscoveryTab extends StatelessWidget {
   final void Function(String message) onSnack;
 
   @override
+  State<_DiscoveryTab> createState() => _DiscoveryTabState();
+}
+
+class _DiscoveryTabState extends State<_DiscoveryTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
-            controller: filterController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.filter_alt_outlined),
-              labelText: '按名称 / 类型 / 主机 / 端口筛选',
-              border: OutlineInputBorder(),
+            controller: widget.filterController,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.filter_alt_outlined),
+              labelText: widget.l10n.filterLabel,
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
             onChanged: (_) {
@@ -220,27 +264,30 @@ class _DiscoveryTab extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: types.isEmpty
-              ? const Center(
+          child: widget.types.isEmpty
+              ? Center(
                   child: Text(
-                    '点击右下角「添加浏览类型」开始发现。\n常用：_http._tcp、_ssh._tcp、_bonsoirdemo._tcp',
+                    widget.l10n.discoveryEmptyBody,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: const TextStyle(color: Colors.black54),
                   ),
                 )
               : ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: filterController,
+                  valueListenable: widget.filterController,
                   builder: (context, _, __) {
                     return ListView.builder(
                       padding: const EdgeInsets.only(bottom: 88),
-                      itemCount: types.length,
+                      itemCount: widget.types.length,
                       itemBuilder: (context, i) {
                         return _DiscoveryTypeSection(
-                          type: types[i],
-                          filter: filterController.text.trim().toLowerCase(),
-                          onRemove: () => onRemoveType(types[i]),
-                          onCopy: onCopy,
-                          onSnack: onSnack,
+                          l10n: widget.l10n,
+                          type: widget.types[i],
+                          filter: widget.filterController.text
+                              .trim()
+                              .toLowerCase(),
+                          onRemove: () => widget.onRemoveType(widget.types[i]),
+                          onCopy: widget.onCopy,
+                          onSnack: widget.onSnack,
                         );
                       },
                     );
@@ -254,6 +301,7 @@ class _DiscoveryTab extends StatelessWidget {
 
 class _DiscoveryTypeSection extends StatefulWidget {
   const _DiscoveryTypeSection({
+    required this.l10n,
     required this.type,
     required this.filter,
     required this.onRemove,
@@ -261,6 +309,7 @@ class _DiscoveryTypeSection extends StatefulWidget {
     required this.onSnack,
   });
 
+  final AppLocalizations l10n;
   final String type;
   final String filter;
   final VoidCallback onRemove;
@@ -337,7 +386,7 @@ class _DiscoveryTypeSectionState extends State<_DiscoveryTypeSection> {
           _services = _services.where((s) => s.name != service.name).toList();
         });
       case BonsoirDiscoveryServiceResolveFailedEvent():
-        widget.onSnack('解析失败（可稍后重试）');
+        widget.onSnack(widget.l10n.resolveFailedRetry);
       default:
         break;
     }
@@ -367,6 +416,7 @@ class _DiscoveryTypeSectionState extends State<_DiscoveryTypeSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = widget.l10n;
     final filtered = _services.where(_matchFilter).toList();
 
     return Card(
@@ -381,19 +431,28 @@ class _DiscoveryTypeSectionState extends State<_DiscoveryTypeSection> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             subtitle: _error != null
-                ? Text('错误：$_error', style: const TextStyle(color: Colors.red))
-                : Text('已发现 ${filtered.length}/${_services.length} 个服务'),
+                ? Text(
+                    l10n.errorWithMessage(_error!),
+                    style: const TextStyle(color: Colors.red),
+                  )
+                : Text(
+                    l10n.discoveredCount(
+                      '${filtered.length}',
+                      '${_services.length}',
+                    ),
+                  ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  tooltip: '复制类型',
+                  tooltip: l10n.copyTypeTooltip,
                   icon: const Icon(Icons.copy, size: 20),
-                  onPressed: () => widget.onCopy('服务类型', widget.type),
+                  onPressed: () =>
+                      widget.onCopy(l10n.copyLabelServiceType, widget.type),
                 ),
                 TextButton(
                   onPressed: widget.onRemove,
-                  child: const Text('停止'),
+                  child: Text(l10n.stop),
                 ),
               ],
             ),
@@ -408,14 +467,15 @@ class _DiscoveryTypeSectionState extends State<_DiscoveryTypeSection> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 _services.isEmpty
-                    ? '正在搜索「${widget.type}」…'
-                    : '无匹配筛选条件的服务',
+                    ? l10n.searchingForType(widget.type)
+                    : l10n.noMatchingServices,
                 style: const TextStyle(color: Colors.black54),
               ),
             )
           else
             for (final service in filtered)
               _ServiceCard(
+                l10n: l10n,
                 service: service,
                 resolver: _resolver,
                 onCopy: widget.onCopy,
@@ -429,55 +489,72 @@ class _DiscoveryTypeSectionState extends State<_DiscoveryTypeSection> {
 
 // ——— 广播 Tab ———
 
-class _BroadcastTab extends StatelessWidget {
+class _BroadcastTab extends StatefulWidget {
   const _BroadcastTab({
+    required this.l10n,
     required this.items,
     required this.onRemove,
     required this.onCopy,
     required this.onSnack,
   });
 
+  final AppLocalizations l10n;
   final List<_BroadcastItem> items;
   final void Function(String id) onRemove;
   final Future<void> Function(String label, String text) onCopy;
   final void Function(String message) onSnack;
 
   @override
+  State<_BroadcastTab> createState() => _BroadcastTabState();
+}
+
+class _BroadcastTabState extends State<_BroadcastTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Center(
+    super.build(context);
+    if (widget.items.isEmpty) {
+      return Center(
         child: Text(
-          '点击右下角「添加广播」发布服务。\n请确保端口未被其他程序占用。',
+          widget.l10n.broadcastEmptyBody,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54),
+          style: const TextStyle(color: Colors.black54),
         ),
       );
     }
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 88),
-      itemCount: items.length,
+      itemCount: widget.items.length,
       itemBuilder: (context, i) {
         return _BroadcastSessionCard(
-          key: ValueKey(items[i].id),
-          item: items[i],
-          onStop: () => onRemove(items[i].id),
-          onCopy: onCopy,
-          onSnack: onSnack,
+          key: ValueKey(widget.items[i].id),
+          l10n: widget.l10n,
+          item: widget.items[i],
+          onStop: () => widget.onRemove(widget.items[i].id),
+          onCopy: widget.onCopy,
+          onSnack: widget.onSnack,
         );
       },
     );
   }
 }
 
+enum _BroadcastPhase { initializing, starting, broadcasting, stopped, failed }
+
 class _BroadcastSessionCard extends StatefulWidget {
   const _BroadcastSessionCard({
     super.key,
+    required this.l10n,
     required this.item,
     required this.onStop,
     required this.onCopy,
     required this.onSnack,
   });
 
+  final AppLocalizations l10n;
   final _BroadcastItem item;
   final VoidCallback onStop;
   final Future<void> Function(String label, String text) onCopy;
@@ -491,7 +568,8 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
   BonsoirBroadcast? _broadcast;
   StreamSubscription<BonsoirBroadcastEvent>? _sub;
   late BonsoirService _live;
-  String _stateLabel = '初始化…';
+  _BroadcastPhase _phase = _BroadcastPhase.initializing;
+  String? _failDetail;
   bool _failed = false;
 
   @override
@@ -511,13 +589,13 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
           case BonsoirBroadcastStartedEvent(:final service):
             setState(() {
               _live = service;
-              _stateLabel = '广播中';
+              _phase = _BroadcastPhase.broadcasting;
               _failed = false;
             });
           case BonsoirBroadcastStoppedEvent(:final service):
             setState(() {
               _live = service;
-              _stateLabel = '已停止';
+              _phase = _BroadcastPhase.stopped;
             });
           default:
             break;
@@ -527,17 +605,18 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
       _broadcast = broadcast;
       if (mounted) {
         setState(() {
-          _stateLabel = '启动中…';
+          _phase = _BroadcastPhase.starting;
         });
       }
     } catch (e, st) {
       debugPrint('Broadcast error: $e\n$st');
       if (mounted) {
         setState(() {
-          _stateLabel = '失败：$e';
+          _failDetail = e.toString();
+          _phase = _BroadcastPhase.failed;
           _failed = true;
         });
-        widget.onSnack('广播启动失败：$e');
+        widget.onSnack(widget.l10n.broadcastStartFailed(e.toString()));
       }
     }
   }
@@ -549,8 +628,24 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
     super.dispose();
   }
 
+  String _phaseLabel(AppLocalizations l10n) {
+    switch (_phase) {
+      case _BroadcastPhase.initializing:
+        return l10n.stateInitializing;
+      case _BroadcastPhase.starting:
+        return l10n.stateStarting;
+      case _BroadcastPhase.broadcasting:
+        return l10n.stateBroadcasting;
+      case _BroadcastPhase.stopped:
+        return l10n.stateStopped;
+      case _BroadcastPhase.failed:
+        return l10n.stateFailedWithError(_failDetail ?? '');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = widget.l10n;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
@@ -562,13 +657,14 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
               color: _failed ? Colors.red : null,
             ),
             title: Text(_live.name),
-            subtitle: Text('状态：$_stateLabel'),
+            subtitle: Text(l10n.statusWithState(_phaseLabel(l10n))),
             trailing: TextButton(
               onPressed: widget.onStop,
-              child: const Text('停止并移除'),
+              child: Text(l10n.stopAndRemove),
             ),
           ),
           _ServiceDetailRows(
+            l10n: l10n,
             service: _live,
             onCopy: widget.onCopy,
           ),
@@ -582,12 +678,14 @@ class _BroadcastSessionCardState extends State<_BroadcastSessionCard> {
 
 class _ServiceCard extends StatelessWidget {
   const _ServiceCard({
+    required this.l10n,
     required this.service,
     required this.resolver,
     required this.onCopy,
     required this.onSnack,
   });
 
+  final AppLocalizations l10n;
   final BonsoirService service;
   final ServiceResolver? resolver;
   final Future<void> Function(String label, String text) onCopy;
@@ -601,19 +699,19 @@ class _ServiceCard extends StatelessWidget {
         children: [
           Expanded(child: Text(service.name)),
           IconButton(
-            tooltip: '复制服务名',
+            tooltip: l10n.copyServiceNameTooltip,
             icon: const Icon(Icons.copy, size: 20),
-            onPressed: () => onCopy('服务名', service.name),
+            onPressed: () => onCopy(l10n.copyLabelServiceName, service.name),
           ),
         ],
       ),
       subtitle: Text(
         service.host != null
-            ? '${service.host}:${service.port}'
-            : '端口 ${service.port} · 主机未解析',
+            ? l10n.hostLineResolved(service.host!, '${service.port}')
+            : l10n.hostLineUnresolved('${service.port}'),
       ),
       children: [
-        _ServiceDetailRows(service: service, onCopy: onCopy),
+        _ServiceDetailRows(l10n: l10n, service: service, onCopy: onCopy),
         if (service.host == null && resolver != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -621,12 +719,12 @@ class _ServiceCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: FilledButton.tonalIcon(
                 icon: const Icon(Icons.dns),
-                label: const Text('解析主机与 TXT'),
+                label: Text(l10n.resolveHostTxt),
                 onPressed: () async {
                   try {
                     await resolver!.resolveService(service);
                   } catch (e) {
-                    onSnack('解析调用失败：$e');
+                    onSnack(l10n.resolveCallFailed(e.toString()));
                   }
                 },
               ),
@@ -639,10 +737,12 @@ class _ServiceCard extends StatelessWidget {
 
 class _ServiceDetailRows extends StatelessWidget {
   const _ServiceDetailRows({
+    required this.l10n,
     required this.service,
     required this.onCopy,
   });
 
+  final AppLocalizations l10n;
   final BonsoirService service;
   final Future<void> Function(String label, String text) onCopy;
 
@@ -664,28 +764,48 @@ class _ServiceDetailRows extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _CopyRow(label: '名称', value: service.name, onCopy: onCopy),
-          _CopyRow(label: '类型', value: service.type, onCopy: onCopy),
           _CopyRow(
-            label: '主机',
-            value: service.host ?? '（未解析）',
+            l10n: l10n,
+            label: l10n.labelName,
+            value: service.name,
+            onCopy: onCopy,
+          ),
+          _CopyRow(
+            l10n: l10n,
+            label: l10n.labelType,
+            value: service.type,
+            onCopy: onCopy,
+          ),
+          _CopyRow(
+            l10n: l10n,
+            label: l10n.labelHost,
+            value: service.host ?? l10n.hostUnresolvedValue,
             onCopy: onCopy,
             enabled: service.host != null,
           ),
-          _CopyRow(label: '端口', value: '${service.port}', onCopy: onCopy),
+          _CopyRow(
+            l10n: l10n,
+            label: l10n.labelPort,
+            value: '${service.port}',
+            onCopy: onCopy,
+          ),
           const Divider(),
-          const Text('TXT 属性', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            l10n.txtAttributesHeader,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 6),
           if (service.attributes.isEmpty)
-            const Text('（无）', style: TextStyle(color: Colors.black54))
+            Text(l10n.txtNone, style: const TextStyle(color: Colors.black54))
           else
             for (final e in service.attributes.entries)
-              _TxtAttributeRow(entry: e, onCopy: onCopy),
+              _TxtAttributeRow(l10n: l10n, entry: e, onCopy: onCopy),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => onCopy('完整 JSON', _fullJson(service)),
+            onPressed: () =>
+                onCopy(l10n.copyLabelFullJson, _fullJson(service)),
             icon: const Icon(Icons.data_object),
-            label: const Text('复制完整 JSON'),
+            label: Text(l10n.copyFullJsonButton),
           ),
         ],
       ),
@@ -695,12 +815,14 @@ class _ServiceDetailRows extends StatelessWidget {
 
 class _CopyRow extends StatelessWidget {
   const _CopyRow({
+    required this.l10n,
     required this.label,
     required this.value,
     required this.onCopy,
     this.enabled = true,
   });
 
+  final AppLocalizations l10n;
   final String label;
   final String value;
   final Future<void> Function(String label, String text) onCopy;
@@ -730,7 +852,7 @@ class _CopyRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: '复制$label',
+            tooltip: l10n.copyFieldTooltip(label),
             icon: const Icon(Icons.copy, size: 20),
             onPressed: enabled ? () => onCopy(label, value) : null,
           ),
@@ -742,10 +864,12 @@ class _CopyRow extends StatelessWidget {
 
 class _TxtAttributeRow extends StatelessWidget {
   const _TxtAttributeRow({
+    required this.l10n,
     required this.entry,
     required this.onCopy,
   });
 
+  final AppLocalizations l10n;
   final MapEntry<String, String> entry;
   final Future<void> Function(String label, String text) onCopy;
 
@@ -761,25 +885,27 @@ class _TxtAttributeRow extends StatelessWidget {
             child: SelectableText(kv),
           ),
           IconButton(
-            tooltip: '复制键',
+            tooltip: l10n.txtCopyKeyTooltip,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
             icon: const Icon(Icons.label_outline, size: 20),
-            onPressed: () => onCopy('TXT 键 ${entry.key}', entry.key),
+            onPressed: () =>
+                onCopy(l10n.copyLabelTxtKey(entry.key), entry.key),
           ),
           IconButton(
-            tooltip: '复制值',
+            tooltip: l10n.txtCopyValueTooltip,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
             icon: const Icon(Icons.abc, size: 20),
-            onPressed: () => onCopy('TXT 值 ${entry.key}', entry.value),
+            onPressed: () =>
+                onCopy(l10n.copyLabelTxtValue(entry.key), entry.value),
           ),
           IconButton(
-            tooltip: '复制 key=value',
+            tooltip: l10n.txtCopyPairTooltip,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
             icon: const Icon(Icons.copy, size: 20),
-            onPressed: () => onCopy('TXT $kv', kv),
+            onPressed: () => onCopy(l10n.copyLabelTxtPair(kv), kv),
           ),
         ],
       ),
@@ -818,8 +944,9 @@ class _DiscoveryTypeDialogState extends State<_DiscoveryTypeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('添加浏览类型'),
+      title: Text(l10n.discoveryDialogTitle),
       content: SingleChildScrollView(
         child: SizedBox(
           width: 320,
@@ -827,7 +954,10 @@ class _DiscoveryTypeDialogState extends State<_DiscoveryTypeDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('快捷选择', style: TextStyle(fontSize: 12, color: Colors.black54)),
+              Text(
+                l10n.quickSelect,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
@@ -843,18 +973,18 @@ class _DiscoveryTypeDialogState extends State<_DiscoveryTypeDialog> {
               const Divider(height: 24),
               TextField(
                 controller: _typeCtrl,
-                decoration: const InputDecoration(
-                  labelText: '类型名（不含下划线前缀）',
-                  hintText: '例如 http → _http._tcp',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.typeNameFieldLabel,
+                  hintText: l10n.typeNameFieldHint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _protocol,
-                decoration: const InputDecoration(
-                  labelText: '传输协议',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.transportProtocol,
+                  border: const OutlineInputBorder(),
                 ),
                 items: const [
                   DropdownMenuItem(value: 'tcp', child: Text('TCP')),
@@ -869,7 +999,7 @@ class _DiscoveryTypeDialogState extends State<_DiscoveryTypeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -879,7 +1009,7 @@ class _DiscoveryTypeDialogState extends State<_DiscoveryTypeDialog> {
             final full = t.contains('._') ? t : '$t._$_protocol';
             Navigator.pop(context, full);
           },
-          child: const Text('开始浏览'),
+          child: Text(l10n.startBrowsing),
         ),
       ],
     );
@@ -955,8 +1085,9 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('添加广播服务'),
+      title: Text(l10n.broadcastDialogTitle),
       content: SingleChildScrollView(
         child: SizedBox(
           width: 340,
@@ -965,25 +1096,25 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
             children: [
               TextField(
                 controller: _name,
-                decoration: const InputDecoration(
-                  labelText: '服务显示名称',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.serviceNameFieldLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _typeStem,
-                decoration: const InputDecoration(
-                  labelText: '类型（如 http → _http._tcp）',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.broadcastTypeFieldLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 value: _protocol,
-                decoration: const InputDecoration(
-                  labelText: '传输协议',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.transportProtocol,
+                  border: const OutlineInputBorder(),
                 ),
                 items: const [
                   DropdownMenuItem(value: 'tcp', child: Text('TCP')),
@@ -995,22 +1126,25 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
               TextField(
                 controller: _port,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '端口',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelPort,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Text('TXT 属性', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    l10n.txtAttrsSection,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: () => setState(() {
                       _attrs.add(_AttrPair(TextEditingController(), TextEditingController()));
                     }),
                     icon: const Icon(Icons.add),
-                    label: const Text('添加'),
+                    label: Text(l10n.add),
                   ),
                 ],
               ),
@@ -1022,10 +1156,10 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
                       Expanded(
                         child: TextField(
                           controller: _attrs[i].key,
-                          decoration: const InputDecoration(
-                            labelText: '键',
+                          decoration: InputDecoration(
+                            labelText: l10n.keyFieldLabel,
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -1033,10 +1167,10 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
                       Expanded(
                         child: TextField(
                           controller: _attrs[i].value,
-                          decoration: const InputDecoration(
-                            labelText: '值',
+                          decoration: InputDecoration(
+                            labelText: l10n.valueFieldLabel,
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -1058,7 +1192,10 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
         FilledButton(
           onPressed: () {
             final raw = _typeStem.text.trim();
@@ -1074,21 +1211,23 @@ class _BroadcastServiceDialogState extends State<_BroadcastServiceDialog> {
             final port = int.tryParse(_port.text.trim()) ?? 0;
             if (port <= 0 || port > 65535) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('请输入有效端口 1–65535')),
+                SnackBar(content: Text(l10n.invalidPortRange)),
               );
               return;
             }
             Navigator.pop(
               context,
               BonsoirService(
-                name: _name.text.trim().isEmpty ? 'Service' : _name.text.trim(),
+                name: _name.text.trim().isEmpty
+                    ? l10n.defaultServiceName
+                    : _name.text.trim(),
                 type: type,
                 port: port,
                 attributes: _collectAttributes(),
               ),
             );
           },
-          child: const Text('开始广播'),
+          child: Text(l10n.startBroadcast),
         ),
       ],
     );

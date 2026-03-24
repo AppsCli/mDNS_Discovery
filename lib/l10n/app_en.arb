@@ -1,0 +1,156 @@
+{
+  "@@locale": "en",
+  "appTitle": "mDNS Discovery",
+  "homeTitle": "mDNS discovery & broadcast",
+  "tabDiscover": "Discover",
+  "tabBroadcast": "Broadcast",
+  "tooltipHelp": "About",
+  "tooltipLanguage": "Language",
+  "dialogAboutTitle": "About mDNS",
+  "dialogAboutBody": "Discover: browse LAN services by DNS-SD type. If the host is unresolved, tap “Resolve host & TXT”.\n\nBroadcast: publish a service on this device (port must be free and the OS must allow it).\n\nCopy shortcuts appear next to items; in details you can copy a line or full JSON.\n\nOn iOS, declare browsed types under NSBonjourServices in Info.plist.",
+  "dialogGotIt": "OK",
+  "fabAddDiscoveryType": "Add browse type",
+  "fabAddBroadcast": "Add broadcast",
+  "filterLabel": "Filter by name / type / host / port",
+  "discoveryEmptyBody": "Tap “Add browse type” to start.\nCommon: _http._tcp, _ssh._tcp, _bonsoirdemo._tcp",
+  "copiedMessage": "Copied: {label}",
+  "@copiedMessage": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "alreadyBrowsingType": "Already browsing this type",
+  "resolveFailedRetry": "Resolve failed (try again later)",
+  "copyTypeTooltip": "Copy type",
+  "stop": "Stop",
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "discoveredCount": "{shown} of {total} services",
+  "@discoveredCount": {
+    "placeholders": {
+      "shown": {},
+      "total": {}
+    }
+  },
+  "searchingForType": "Searching for “{type}”…",
+  "@searchingForType": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "noMatchingServices": "No services match the filter",
+  "broadcastEmptyBody": "Tap “Add broadcast” to publish.\nMake sure the port is not in use.",
+  "stateInitializing": "Initializing…",
+  "stateBroadcasting": "Broadcasting",
+  "stateStopped": "Stopped",
+  "stateStarting": "Starting…",
+  "stopAndRemove": "Stop & remove",
+  "statusWithState": "Status: {state}",
+  "@statusWithState": {
+    "placeholders": {
+      "state": {}
+    }
+  },
+  "copyServiceNameTooltip": "Copy service name",
+  "hostLineUnresolved": "Port {port} · host not resolved",
+  "@hostLineUnresolved": {
+    "placeholders": {
+      "port": {}
+    }
+  },
+  "hostLineResolved": "{host}:{port}",
+  "@hostLineResolved": {
+    "placeholders": {
+      "host": {},
+      "port": {}
+    }
+  },
+  "resolveHostTxt": "Resolve host & TXT",
+  "resolveCallFailed": "Resolve call failed: {error}",
+  "@resolveCallFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "labelName": "Name",
+  "labelType": "Type",
+  "labelHost": "Host",
+  "hostUnresolvedValue": "(unresolved)",
+  "labelPort": "Port",
+  "txtAttributesHeader": "TXT records",
+  "txtNone": "(none)",
+  "copyFullJsonButton": "Copy full JSON",
+  "copyFieldTooltip": "Copy {field}",
+  "@copyFieldTooltip": {
+    "placeholders": {
+      "field": {}
+    }
+  },
+  "discoveryDialogTitle": "Add browse type",
+  "quickSelect": "Quick pick",
+  "typeNameFieldLabel": "Type name (without leading _)",
+  "typeNameFieldHint": "e.g. http → _http._tcp",
+  "transportProtocol": "Transport",
+  "cancel": "Cancel",
+  "startBrowsing": "Start browsing",
+  "broadcastDialogTitle": "Add broadcast",
+  "serviceNameFieldLabel": "Service display name",
+  "broadcastTypeFieldLabel": "Type (e.g. http → _http._tcp)",
+  "txtAttrsSection": "TXT attributes",
+  "add": "Add",
+  "keyFieldLabel": "Key",
+  "valueFieldLabel": "Value",
+  "startBroadcast": "Start broadcast",
+  "invalidPortRange": "Enter a valid port (1–65535)",
+  "broadcastStartFailed": "Broadcast failed to start: {error}",
+  "@broadcastStartFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "stateFailedWithError": "Failed: {error}",
+  "@stateFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "defaultHostLabel": "Local",
+  "defaultServiceName": "Service",
+  "languageDialogTitle": "Language",
+  "languageFollowSystem": "Follow system",
+  "txtCopyKeyTooltip": "Copy key",
+  "txtCopyValueTooltip": "Copy value",
+  "txtCopyPairTooltip": "Copy key=value",
+  "copyLabelServiceType": "service type",
+  "copyLabelServiceName": "service name",
+  "copyLabelFullJson": "full JSON",
+  "copyLabelTxtKey": "TXT key {key}",
+  "@copyLabelTxtKey": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "copyLabelTxtValue": "TXT value {key}",
+  "@copyLabelTxtValue": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "copyLabelTxtPair": "TXT {pair}",
+  "@copyLabelTxtPair": {
+    "placeholders": {
+      "pair": {}
+    }
+  },
+  "tooltipThemeColor": "Theme color",
+  "themeColorDialogTitle": "Choose accent color",
+  "tooltipAppearance": "Appearance",
+  "appearanceDialogTitle": "Appearance",
+  "appearanceFollowSystem": "Follow system",
+  "appearanceLight": "Light",
+  "appearanceDark": "Dark"
+}
