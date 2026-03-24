@@ -1,5 +1,5 @@
 name: mdns_discovery
-description: "A new Flutter mDNS Discovery project."
+description: "mDNS Discovery"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -46,6 +46,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+  msix: ^3.16.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -88,3 +90,30 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# 自 assets/icon/icon.png 生成各平台启动器 / 应用图标（dart run flutter_launcher_icons）
+flutter_launcher_icons:
+  image_path: assets/icon/icon.png
+  android: true
+  ios: true
+  web:
+    generate: true
+  windows:
+    generate: true
+  macos:
+    generate: true
+
+# Microsoft Store MSIX（dart run msix:create，需在 Windows 上且已安装 Windows SDK）
+# 合作伙伴中心备案信息（PFN/SID 由 Identity Name + Publisher 派生，上传前可与中心核对）：
+# Store 产品 ID: 9N074HXZCMTL → https://apps.microsoft.com/detail/9N074HXZCMTL
+# 期望 PFN: 38916OpenIoTHubCloud.mDNSDiscovery_n13avf7sg128e
+# Package SID: S-1-15-2-2290839952-452553964-670489177-195082275-2657909591-1039964110-3717758933
+msix_config:
+  store: true
+  display_name: mDNS Discovery
+  publisher_display_name: OpenIoTHub Cloud
+  identity_name: 38916OpenIoTHubCloud.mDNSDiscovery
+  publisher: CN=5F64CEA2-463E-41A3-AE89-6979242A61DF
+  msix_version: 1.0.0.1
+  logo_path: assets/icon/icon.png
+  capabilities: internetClient, privateNetworkClientServer
