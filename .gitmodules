@@ -1,0 +1,3 @@
+[submodule "Bonsoir"]
+	path = Bonsoir
+	url = git@github.com:Skyost/Bonsoir.git
